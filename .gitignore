@@ -31,6 +31,9 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
+# Internal Documentation
+docs/
+
 # Docker
 docker-compose.override.yml
 
