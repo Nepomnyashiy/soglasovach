@@ -2,8 +2,13 @@ fastapi
 uvicorn[standard]
 sqlalchemy[asyncio]
 asyncpg
-pydantic
+pydantic[email]
+pydantic-settings
 alembic
+passlib
+python-jose[cryptography]
+python-multipart
+
 ruff
 pytest
 pytest-asyncio
