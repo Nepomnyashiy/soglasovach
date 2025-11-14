@@ -61,7 +61,14 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = os.environ.get("DATABASE_URL")
+    if configuration is None:
+        raise ValueError("Alembic configuration section not found")
+
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable is not set")
+
+    configuration["sqlalchemy.url"] = db_url
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
