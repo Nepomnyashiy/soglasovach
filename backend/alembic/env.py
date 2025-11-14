@@ -7,10 +7,12 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# Add the project root to the Python path
+# Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.db.base import Base
+from app.models.user import User  # noqa: F401 - Ensure all models are imported
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
