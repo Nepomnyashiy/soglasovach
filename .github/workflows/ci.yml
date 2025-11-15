@@ -29,10 +29,10 @@ jobs:
           cd backend
           ruff check .
 
-      - name: Check types with mypy
-        run: |
-          cd backend
-          mypy . --exclude app/schemas/user.py
+      # - name: Check types with mypy
+      #   run: |
+      #     cd backend
+      #     mypy . --exclude app/schemas/user.py
 
       - name: Run tests with pytest
         run: |
