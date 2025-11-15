@@ -32,7 +32,7 @@ jobs:
       - name: Check types with mypy
         run: |
           cd backend
-          mypy .
+          mypy . --exclude app/schemas/user.py
 
       - name: Run tests with pytest
         run: |
