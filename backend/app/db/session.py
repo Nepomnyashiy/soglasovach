@@ -1,9 +1,8 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from app.core.config import settings  # Будет создан позже
+from app.core.config import settings
 
 
 # Создаем асинхронный движок SQLAlchemy
@@ -12,11 +11,8 @@ engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
 
 # Создаем фабрику сессий. `expire_on_commit=False` предотвращает
 # истечение срока действия объектов после коммита, что удобно для асинхронной работы.
-AsyncSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
-    class_=AsyncSession,
     expire_on_commit=False,
 )
 
