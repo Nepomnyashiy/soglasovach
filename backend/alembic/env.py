@@ -106,5 +106,12 @@ else:
     import asyncio
     from sqlalchemy.ext.asyncio import create_async_engine
     from dotenv import load_dotenv
-    load_dotenv(dotenv_path=Path(__file__).parent / "alembic.env")
+    
+    print(f"DEBUG: Path(__file__).parent: {Path(__file__).parent}")
+    print(f"DEBUG: os.getcwd(): {os.getcwd()}")
+    
+    load_dotenv(dotenv_path=Path(__file__).parent.parent / "alembic.env")
+    
+    print(f"DEBUG: DATABASE_URL after load_dotenv(): {os.environ.get('DATABASE_URL')}")
+    
     asyncio.run(run_migrations_online())
