@@ -47,3 +47,4 @@ docker-compose.override.yml
 
 tasks/
 dev/
+backend/alembic.env

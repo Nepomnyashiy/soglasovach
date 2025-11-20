@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.db.base import Base
 from app.models.user import User  # noqa: F401 - Ensure all models are imported
+from app.models.workflow import WorkflowTemplate, WorkflowStep, WorkflowInstance, WorkflowHistory, Attachment  # noqa: F401
 
 
 # this is the Alembic Config object, which provides
@@ -104,4 +105,5 @@ if context.is_offline_mode():
 else:
     import asyncio
     from sqlalchemy.ext.asyncio import create_async_engine
-    asyncio.run(run_migrations_online())
+        from dotenv import load_dotenv
+        load_dotenv(dotenv_path=Path(__file__).parent / "alembic.env")    asyncio.run(run_migrations_online())
