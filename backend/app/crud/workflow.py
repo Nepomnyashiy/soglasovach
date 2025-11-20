@@ -45,6 +45,14 @@ async def get_workflow_templates(db: AsyncSession, skip: int = 0, limit: int = 1
     return result.scalars().all()
 
 
+# Получение WorkflowTemplate по имени
+async def get_workflow_template_by_name(db: AsyncSession, name: str) -> Optional[WorkflowTemplate]:
+    result = await db.execute(
+        select(WorkflowTemplate).where(WorkflowTemplate.name == name)
+    )
+    return result.scalar_one_or_none()
+
+
 # --- CRUD для WorkflowStep ---
 async def create_workflow_step(
     db: AsyncSession, step_in: WorkflowStepCreate, template_id: uuid.UUID
