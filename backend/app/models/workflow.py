@@ -44,6 +44,10 @@ class WorkflowInstance(Base):
     current_step_id = Column(UUID(as_uuid=True), ForeignKey("workflow_steps.id"), nullable=True)
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
+    # Добавлены поля created_at и updated_at
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now(), nullable=False)
+
     template = relationship("WorkflowTemplate")
     current_step = relationship("WorkflowStep")
     created_by = relationship("User")

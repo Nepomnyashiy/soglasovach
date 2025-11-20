@@ -131,7 +131,21 @@ async def create_workflow_instance(
         await db.commit()
         await db.refresh(db_instance) # Обновить, чтобы подтянуть вложения
 
-    return db_instance
+    # Загружаем экземпляр еще раз, но уже со всеми жадно загруженными связями
+    # Это необходимо, чтобы Pydantic-схема WorkflowInstanceRead могла корректно сериализовать объект
+    # (поскольку она включает template, current_step, created_by, history, attachments)
+    loaded_instance = await db.execute(
+        select(WorkflowInstance)
+        .options(
+            selectinload(WorkflowInstance.template),
+            selectinload(WorkflowInstance.current_step),
+            selectinload(WorkflowInstance.created_by),
+            selectinload(WorkflowInstance.history),
+            selectinload(WorkflowInstance.attachments),
+        )
+        .where(WorkflowInstance.id == db_instance.id)
+    )
+    return loaded_instance.scalar_one()
 
 
 async def get_workflow_instance(db: AsyncSession, instance_id: uuid.UUID) -> Optional[WorkflowInstance]:
