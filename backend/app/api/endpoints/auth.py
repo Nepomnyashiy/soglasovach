@@ -5,6 +5,7 @@ import uuid # Импортируем модуль uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt  # type: ignore
+from jose.exceptions import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
