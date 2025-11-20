@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.db.session import get_async_session
-from app.api.endpoints import users, auth # Импортируем наши новые роутеры
+from app.api.endpoints import users, auth, workflow # Импортируем наши новые роутеры
 
 
 app = FastAPI(
@@ -15,6 +15,7 @@ app = FastAPI(
 # Включаем роутеры в основное приложение
 app.include_router(users.router, prefix="/users", tags=["Пользователи"])
 app.include_router(auth.router, prefix="/auth", tags=["Аутентификация"])
+app.include_router(workflow.router, prefix="/workflow", tags=["Рабочие процессы"]) # Добавил роутер рабочих процессов
 
 
 @app.get("/")
