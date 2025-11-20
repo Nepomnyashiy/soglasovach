@@ -105,5 +105,6 @@ if context.is_offline_mode():
 else:
     import asyncio
     from sqlalchemy.ext.asyncio import create_async_engine
-        from dotenv import load_dotenv
-        load_dotenv(dotenv_path=Path(__file__).parent / "alembic.env")    asyncio.run(run_migrations_online())
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=Path(__file__).parent / "alembic.env")
+    asyncio.run(run_migrations_online())
