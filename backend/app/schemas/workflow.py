@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from app.schemas.user import UserRead  # Импортируем UserRead для связей
 
@@ -20,8 +20,7 @@ class WorkflowTemplateRead(WorkflowTemplateBase):
     id: uuid.UUID = Field(..., description="Уникальный идентификатор шаблона")
     steps: List["WorkflowStepRead"] = [] # Forward reference
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- WorkflowStep Schemas ---
@@ -41,8 +40,7 @@ class WorkflowStepRead(WorkflowStepBase):
     template_id: uuid.UUID = Field(..., description="ID шаблона, к которому относится шаг")
     assignee: Optional[UserRead] = None # Информация о назначенном пользователе
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Attachment Schemas ---
@@ -64,8 +62,7 @@ class AttachmentRead(AttachmentBase):
     instance_id: uuid.UUID = Field(..., description="ID экземпляра рабочего процесса, к которому относится вложение")
     uploaded_by: UserRead # Кто загрузил файл
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- WorkflowInstance Schemas ---
@@ -95,8 +92,7 @@ class WorkflowInstanceRead(WorkflowInstanceBase):
     history: List["WorkflowHistoryRead"] = [] # Forward reference
     attachments: List[AttachmentRead] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- WorkflowHistory Schemas ---
@@ -117,8 +113,7 @@ class WorkflowHistoryRead(WorkflowHistoryBase):
     step: WorkflowStepBase # Информация о шаге, на котором произошло действие
     user: UserRead # Кто выполнил действие
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Update forward refs

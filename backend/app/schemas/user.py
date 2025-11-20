@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 # Общие поля, которые есть у всех схем User
@@ -29,8 +29,7 @@ class UserRead(UserBase):
     is_superuser: bool = Field(default=..., example=False, description="Является ли пользователь суперадмином")
     is_verified: bool = Field(default=..., example=False, description="Подтвердил ли пользователь свою почту")
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Схема, представляющая пользователя как объект в базе данных
