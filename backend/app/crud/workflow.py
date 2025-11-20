@@ -3,6 +3,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, delete
+from sqlalchemy.orm import selectinload
 
 from app.models.workflow import (
     WorkflowTemplate,
@@ -28,7 +29,16 @@ async def create_workflow_template(
     db.add(db_template)
     await db.commit()
     await db.refresh(db_template)
-    return db_template
+    
+    # Загружаем шаблон еще раз, но уже с жадной загрузкой шагов
+    # Это необходимо, чтобы Pydantic-схема WorkflowTemplateRead могла корректно сериализовать объект
+    # (поскольку она включает steps: List["WorkflowStepRead"])
+    loaded_template = await db.execute(
+        select(WorkflowTemplate)
+        .options(selectinload(WorkflowTemplate.steps))
+        .where(WorkflowTemplate.id == db_template.id)
+    )
+    return loaded_template.scalar_one()
 
 
 async def get_workflow_template(db: AsyncSession, template_id: uuid.UUID) -> Optional[WorkflowTemplate]:
