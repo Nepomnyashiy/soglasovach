@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"  # Алгоритм хеширования для JWT
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Время жизни токена доступа в минутах
 
+    # Настройки MinIO
+    MINIO_ENDPOINT: str = "localhost:9000"  # Или minio:9000 если из другого контейнера
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET: str = "soglasovach-bucket"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
