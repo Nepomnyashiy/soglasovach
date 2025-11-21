@@ -1,15 +1,29 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from contextlib import asynccontextmanager # NEW
 
 from app.db.session import get_async_session
 from app.api.endpoints import users, auth, workflow # Импортируем наши новые роутеры
+from app.core.minio_client import minio_client # NEW
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Код, который выполнится при старте приложения
+    print("Приложение запускается...")
+    await minio_client.ensure_bucket_exists()
+    print("Бакет в MinIO проверен и готов к работе.")
+    yield
+    # Код, который выполнится при остановке приложения
+    print("Приложение останавливается...")
 
 
 app = FastAPI(
     title="Soglasovach API",
     description="API для сервиса автоматизации корпоративных рабочих процессов.",
     version="0.1.0",
+    lifespan=lifespan # NEW
 )
 
 # Включаем роутеры в основное приложение
