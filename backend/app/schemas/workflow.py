@@ -59,7 +59,7 @@ class AttachmentRead(AttachmentBase):
     id: uuid.UUID = Field(..., description="Уникальный идентификатор вложения")
     s3_path: str = Field(..., description="Путь к файлу в S3-совместимом хранилище (MinIO)")
     uploaded_at: datetime = Field(..., description="Дата и время загрузки файла")
-    instance_id: uuid.UUID = Field(..., description="ID экземпляра рабочего процесса, к которому относится вложение")
+    instance_id: Optional[uuid.UUID] = Field(None, description="ID экземпляра рабочего процесса, к которому относится вложение")
     uploaded_by: UserRead # Кто загрузил файл
 
     model_config = ConfigDict(from_attributes=True)
