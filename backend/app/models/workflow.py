@@ -1,4 +1,5 @@
 import uuid
+import sqlalchemy as sa
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Text, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -45,8 +46,8 @@ class WorkflowInstance(Base):
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     # Добавлены поля created_at и updated_at
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=sa.text('now()'), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=sa.text('now()'), server_default=sa.text('now()'), nullable=False)
 
     template = relationship("WorkflowTemplate")
     current_step = relationship("WorkflowStep")
@@ -62,7 +63,7 @@ class WorkflowHistory(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     action = Column(String, nullable=False) # e.g., "created", "approved", "rejected"
     comment = Column(Text)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    timestamp = Column(DateTime(timezone=True), server_default=sa.text('now()'))
 
     instance_id = Column(UUID(as_uuid=True), ForeignKey("workflow_instances.id"), nullable=False)
     step_id = Column(UUID(as_uuid=True), ForeignKey("workflow_steps.id"), nullable=False)
@@ -80,9 +81,9 @@ class Attachment(Base):
     filename = Column(String, nullable=False)
     s3_path = Column(String, nullable=False, unique=True)
     content_type = Column(String, nullable=False)
-    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    uploaded_at = Column(DateTime(timezone=True), server_default=sa.text('now()'))
 
-    instance_id = Column(UUID(as_uuid=True), ForeignKey("workflow_instances.id"), nullable=False)
+    instance_id = Column(UUID(as_uuid=True), ForeignKey("workflow_instances.id"), nullable=True)
     uploaded_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     instance = relationship("WorkflowInstance", back_populates="attachments")
