@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
@@ -21,10 +21,8 @@ from app.schemas.workflow import (
 )
 from app.crud import workflow as crud_workflow
 from app.models.workflow import WorkflowTemplate, WorkflowInstance, WorkflowStep, Attachment
+from app.core.minio_client import minio_client # Импортируем Minio клиент
 
-# Временное решение для MinIO - в реальной системе это будет более сложный сервис
-# from app.core.minio_client import minio_client # Пока не реализовано
-# from minio import Minio # Пока не реализовано
 
 router = APIRouter()
 
@@ -209,31 +207,20 @@ async def upload_attachment(
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
-    # TODO: Реализовать загрузку в MinIO
-    # file_path_in_minio = await minio_client.upload_file(file)
+    # Реализовать загрузку в MinIO
+    file_path_in_minio = await minio_client.upload_file(file)
 
-    # Временная заглушка для s3_path
-    s3_path = f"minio/{uuid.uuid4()}/{file.filename}"
-
-    attachment_in = AttachmentRead(
-        filename=file.filename,
-        content_type=file.content_type,
-        s3_path=s3_path,
-        uploaded_by=current_user,
-        instance_id=instance_id or uuid.uuid4(), # Временно, пока нет реального instance_id
-        id=uuid.uuid4(), # Временно
-        uploaded_at=datetime.now(), # Временно
+    db_attachment = await crud_workflow.create_attachment(
+        db,
+        attachment_in=AttachmentCreate(
+            filename=file.filename,
+            content_type=file.content_type,
+        ),
+        s3_path=file_path_in_minio,
+        uploaded_by_id=current_user.id,
+        instance_id=instance_id,
     )
-
-    # db_attachment = await crud_workflow.create_attachment(
-    #     db,
-    #     attachment_in=attachment_in,
-    #     s3_path=file_path_in_minio,
-    #     uploaded_by_id=current_user.id,
-    #     instance_id=instance_id,
-    # )
-    # return db_attachment
-    return attachment_in # Временно, пока не будет реализована логика MinIO
+    return db_attachment
 
 
 @router.get(
@@ -253,7 +240,5 @@ async def download_attachment(
             detail="Вложение не найдено."
         )
     
-    # TODO: Реализовать скачивание из MinIO
-    # file_content = await minio_client.download_file(attachment.s3_path)
-    # return Response(content=file_content, media_type=attachment.content_type)
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Скачивание из MinIO еще не реализовано.")
+    file_content = await minio_client.download_file(attachment.s3_path)
+    return Response(content=file_content, media_type=attachment.content_type)
