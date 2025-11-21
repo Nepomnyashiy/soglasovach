@@ -4,6 +4,7 @@ from app.core.config import settings
 from fastapi import UploadFile
 import uuid
 import logging
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class MinioClient:
             self.client.put_object(
                 self.bucket_name,
                 object_name,
-                data=bytes(contents),
+                data=io.BytesIO(contents),
                 length=len(contents),
                 content_type=file.content_type
             )
