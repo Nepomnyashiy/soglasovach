@@ -18,6 +18,7 @@ from app.schemas.workflow import (
     WorkflowInstanceCreate,
     WorkflowInstanceRead,
     AttachmentRead,
+    AttachmentCreate,
 )
 from app.crud import workflow as crud_workflow
 from app.models.workflow import WorkflowTemplate, WorkflowInstance, WorkflowStep, Attachment
