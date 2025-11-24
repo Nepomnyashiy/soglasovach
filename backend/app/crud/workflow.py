@@ -12,6 +12,7 @@ from app.models.workflow import (
     WorkflowHistory,
     Attachment,
 )
+from app.models.user import User # NEW
 from app.schemas.workflow import (
     WorkflowTemplateCreate,
     WorkflowStepCreate,
@@ -235,3 +236,72 @@ async def delete_attachment(db: AsyncSession, attachment_id: uuid.UUID) -> bool:
     )
     await db.commit()
     return result.rowcount > 0
+
+
+# --- Workflow Actions ---
+async def advance_workflow_instance(
+    db: AsyncSession,
+    instance: WorkflowInstance,
+    user, # Assuming User model from app.models.user
+    action: str,
+    comment: Optional[str] = None
+) -> WorkflowInstance:
+    """
+    Основная логика для продвижения рабочего процесса.
+    """
+    # Шаг 1: Проверка разрешений
+    # Убедимся, что текущий шаг назначен этому пользователю (или пока никому не назначен)
+    current_step = await db.get(WorkflowStep, instance.current_step_id)
+    if not current_step:
+        raise ValueError("Экземпляр находится на неверном шаге.")
+    
+    if current_step.assignee_id and current_step.assignee_id != user.id:
+        raise PermissionError("Пользователь не является исполнителем текущего шага.")
+
+    # Шаг 2: Запись в историю
+    history_entry = WorkflowHistoryCreate(action=action, comment=comment)
+    await create_workflow_history_entry(
+        db, 
+        history_in=history_entry, 
+        instance_id=instance.id, 
+        step_id=instance.current_step_id, 
+        user_id=user.id
+    )
+
+    # Шаг 3: Логика переходов
+    if action == "reject":
+        instance.status = "rejected"
+    elif action == "approve":
+        # Ищем следующий шаг
+        all_steps = await get_workflow_steps_by_template(db, template_id=instance.template_id)
+        next_step = None
+        for i, step in enumerate(all_steps):
+            if step.id == instance.current_step_id:
+                if i + 1 < len(all_steps):
+                    next_step = all_steps[i+1]
+                break
+        
+        if next_step:
+            instance.current_step_id = next_step.id
+        else:
+            # Шагов больше нет, процесс завершен
+            instance.status = "approved"
+            instance.current_step_id = None
+    
+    db.add(instance)
+    await db.commit()
+    await db.refresh(instance)
+
+    # Перезагружаем экземпляр со всеми связями для корректного ответа API
+    loaded_instance = await db.execute(
+        select(WorkflowInstance)
+        .options(
+            selectinload(WorkflowInstance.template),
+            selectinload(WorkflowInstance.current_step),
+            selectinload(WorkflowInstance.created_by),
+            selectinload(WorkflowInstance.history).selectinload(WorkflowHistory.user),
+            selectinload(WorkflowInstance.attachments),
+        )
+        .where(WorkflowInstance.id == instance.id)
+    )
+    return loaded_instance.scalar_one()

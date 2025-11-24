@@ -243,3 +243,55 @@ async def download_attachment(
     
     file_content = await minio_client.download_file(attachment.s3_path)
     return Response(content=file_content, media_type=attachment.content_type)
+
+
+# --- Workflow Actions ---
+class WorkflowActionRequest(BaseModel):
+    comment: Optional[str] = Field(None, description="Комментарий к действию")
+
+@router.post(
+    "/workflow_instances/{instance_id}/approve",
+    response_model=WorkflowInstanceRead,
+    summary="Согласовать текущий шаг рабочего процесса",
+)
+async def approve_step(
+    instance_id: uuid.UUID,
+    action_in: WorkflowActionRequest,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    """
+    Выполняет действие 'approve' (согласовать) на текущем шаге.
+    """
+    instance = await crud_workflow.get_workflow_instance(db, instance_id=instance_id)
+    if not instance:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Экземпляр не найден.")
+
+    updated_instance = await crud_workflow.advance_workflow_instance(
+        db, instance=instance, user=current_user, action="approve", comment=action_in.comment
+    )
+    return updated_instance
+
+
+@router.post(
+    "/workflow_instances/{instance_id}/reject",
+    response_model=WorkflowInstanceRead,
+    summary="Отклонить текущий шаг рабочего процесса",
+)
+async def reject_step(
+    instance_id: uuid.UUID,
+    action_in: WorkflowActionRequest,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    """
+    Выполняет действие 'reject' (отклонить) на текущем шаге.
+    """
+    instance = await crud_workflow.get_workflow_instance(db, instance_id=instance_id)
+    if not instance:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Экземпляр не найден.")
+
+    updated_instance = await crud_workflow.advance_workflow_instance(
+        db, instance=instance, user=current_user, action="reject", comment=action_in.comment
+    )
+    return updated_instance
