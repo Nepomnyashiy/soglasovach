@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -60,7 +59,7 @@ async def create_template(
     description="Возвращает детали шаблона рабочего процесса, включая его шаги."
 )
 async def get_template(
-    template_id: uuid.UUID,
+    template_id: int,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -103,7 +102,7 @@ async def list_templates(
     description="Добавляет новый шаг к существующему шаблону рабочего процесса."
 )
 async def add_step_to_template(
-    template_id: uuid.UUID,
+    template_id: int,
     step_in: WorkflowStepCreate,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
@@ -126,7 +125,7 @@ async def add_step_to_template(
     description="Возвращает детали конкретного шага рабочего процесса."
 )
 async def get_step(
-    step_id: uuid.UUID,
+    step_id: int,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -172,7 +171,7 @@ async def create_instance(
     description="Возвращает детали экземпляра рабочего процесса, включая его текущий шаг, историю и вложения."
 )
 async def get_instance(
-    instance_id: uuid.UUID,
+    instance_id: int,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -205,11 +204,10 @@ async def get_instance(
 )
 async def upload_attachment(
     file: UploadFile = File(...),
-    instance_id: Optional[uuid.UUID] = None, # Опционально привязать сразу к экземпляру
+    instance_id: Optional[int] = None,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
-    # Реализовать загрузку в MinIO
     file_path_in_minio = await minio_client.upload_file(file)
 
     db_attachment = await crud_workflow.create_attachment(
@@ -231,7 +229,7 @@ async def upload_attachment(
     description="Позволяет скачать файл, прикрепленный к рабочему процессу."
 )
 async def download_attachment(
-    attachment_id: uuid.UUID,
+    attachment_id: int,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -256,7 +254,7 @@ class WorkflowActionRequest(BaseModel):
     summary="Согласовать текущий шаг рабочего процесса",
 )
 async def approve_step(
-    instance_id: uuid.UUID,
+    instance_id: int,
     action_in: WorkflowActionRequest,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
@@ -277,14 +275,11 @@ async def approve_step(
     summary="Отклонить текущий шаг рабочего процесса",
 )
 async def reject_step(
-    instance_id: uuid.UUID,
+    instance_id: int,
     action_in: WorkflowActionRequest,
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
-    """
-    Выполняет действие 'reject' (отклонить) на текущем шаге.
-    """
     instance = await db.get(WorkflowInstance, instance_id)
     if not instance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Экземпляр не найден.")

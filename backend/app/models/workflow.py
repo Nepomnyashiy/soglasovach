@@ -1,8 +1,6 @@
-import uuid
 import sqlalchemy as sa
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Text, func
+from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Text
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
 from app.models.user import User
@@ -11,7 +9,8 @@ from app.models.user import User
 class WorkflowTemplate(Base):
     __tablename__ = "workflow_templates"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
+    reference_id = Column(String, unique=True, index=True, nullable=True) # e.g., TPL-00001
     name = Column(String, nullable=False, unique=True)
     description = Column(Text)
 
@@ -21,29 +20,31 @@ class WorkflowTemplate(Base):
 class WorkflowStep(Base):
     __tablename__ = "workflow_steps"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
+    reference_id = Column(String, unique=True, index=True, nullable=True) # e.g., STEP-00001
     name = Column(String, nullable=False)
     description = Column(Text)
     order = Column(Integer, nullable=False)
 
-    template_id = Column(UUID(as_uuid=True), ForeignKey("workflow_templates.id"), nullable=False)
+    template_id = Column(Integer, ForeignKey("workflow_templates.id"), nullable=False)
     template = relationship("WorkflowTemplate", back_populates="steps")
 
     # В реальной системе здесь может быть ссылка на роль (Role)
     # Для простоты пока оставим assignee_id, который может быть null
-    assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    assignee_id = Column(ForeignKey("users.id"), nullable=True)
     assignee = relationship("User")
 
 
 class WorkflowInstance(Base):
     __tablename__ = "workflow_instances"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
+    reference_id = Column(String, unique=True, index=True, nullable=True) # e.g., INST-00001
     status = Column(String, default="in_progress")
 
-    template_id = Column(UUID(as_uuid=True), ForeignKey("workflow_templates.id"), nullable=False)
-    current_step_id = Column(UUID(as_uuid=True), ForeignKey("workflow_steps.id"), nullable=True)
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    template_id = Column(Integer, ForeignKey("workflow_templates.id"), nullable=False)
+    current_step_id = Column(Integer, ForeignKey("workflow_steps.id"), nullable=True)
+    created_by_id = Column(ForeignKey("users.id"), nullable=False)
 
     # Добавлены поля created_at и updated_at
     created_at = Column(DateTime(timezone=True), server_default=sa.text('now()'), nullable=False)
@@ -60,14 +61,14 @@ class WorkflowInstance(Base):
 class WorkflowHistory(Base):
     __tablename__ = "workflow_history"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
     action = Column(String, nullable=False) # e.g., "created", "approved", "rejected"
     comment = Column(Text)
     timestamp = Column(DateTime(timezone=True), server_default=sa.text('now()'))
 
-    instance_id = Column(UUID(as_uuid=True), ForeignKey("workflow_instances.id"), nullable=False)
-    step_id = Column(UUID(as_uuid=True), ForeignKey("workflow_steps.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    instance_id = Column(Integer, ForeignKey("workflow_instances.id"), nullable=False)
+    step_id = Column(Integer, ForeignKey("workflow_steps.id"), nullable=False)
+    user_id = Column(ForeignKey("users.id"), nullable=False)
 
     instance = relationship("WorkflowInstance", back_populates="history")
     step = relationship("WorkflowStep")
@@ -77,14 +78,16 @@ class WorkflowHistory(Base):
 class Attachment(Base):
     __tablename__ = "attachments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
+    reference_id = Column(String, unique=True, index=True, nullable=True) # e.g., ATT-00001
     filename = Column(String, nullable=False)
     s3_path = Column(String, nullable=False, unique=True)
     content_type = Column(String, nullable=False)
     uploaded_at = Column(DateTime(timezone=True), server_default=sa.text('now()'))
 
-    instance_id = Column(UUID(as_uuid=True), ForeignKey("workflow_instances.id"), nullable=True)
-    uploaded_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    instance_id = Column(Integer, ForeignKey("workflow_instances.id"), nullable=True)
+    uploaded_by_id = Column(ForeignKey("users.id"), nullable=False)
 
     instance = relationship("WorkflowInstance", back_populates="attachments")
     uploaded_by = relationship("User")
+

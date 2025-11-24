@@ -12,7 +12,7 @@ from app.models.workflow import (
     WorkflowHistory,
     Attachment,
 )
-from app.models.user import User # NEW
+from app.models.user import User
 from app.schemas.workflow import (
     WorkflowTemplateCreate,
     WorkflowStepCreate,
@@ -31,9 +31,13 @@ async def create_workflow_template(
     await db.commit()
     await db.refresh(db_template)
     
-    # Загружаем шаблон еще раз, но уже с жадной загрузкой шагов
-    # Это необходимо, чтобы Pydantic-схема WorkflowTemplateRead могла корректно сериализовать объект
-    # (поскольку она включает steps: List["WorkflowStepRead"])
+    # Генерируем и сохраняем человеко-читаемый ID
+    db_template.reference_id = f"TPL-{db_template.id:06d}"
+    db.add(db_template)
+    await db.commit()
+    await db.refresh(db_template)
+
+    # Загружаем шаблон еще раз с шагами для ответа API
     loaded_template = await db.execute(
         select(WorkflowTemplate)
         .options(selectinload(WorkflowTemplate.steps))
@@ -42,11 +46,8 @@ async def create_workflow_template(
     return loaded_template.scalar_one()
 
 
-async def get_workflow_template(db: AsyncSession, template_id: uuid.UUID) -> Optional[WorkflowTemplate]:
-    result = await db.execute(
-        select(WorkflowTemplate).where(WorkflowTemplate.id == template_id)
-    )
-    return result.scalar_one_or_none()
+async def get_workflow_template(db: AsyncSession, template_id: int) -> Optional[WorkflowTemplate]:
+    return await db.get(WorkflowTemplate, template_id)
 
 
 async def get_workflow_templates(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[WorkflowTemplate]:
@@ -56,7 +57,6 @@ async def get_workflow_templates(db: AsyncSession, skip: int = 0, limit: int = 1
     return result.scalars().all()
 
 
-# Получение WorkflowTemplate по имени
 async def get_workflow_template_by_name(db: AsyncSession, name: str) -> Optional[WorkflowTemplate]:
     result = await db.execute(
         select(WorkflowTemplate).where(WorkflowTemplate.name == name)
@@ -66,24 +66,27 @@ async def get_workflow_template_by_name(db: AsyncSession, name: str) -> Optional
 
 # --- CRUD для WorkflowStep ---
 async def create_workflow_step(
-    db: AsyncSession, step_in: WorkflowStepCreate, template_id: uuid.UUID
+    db: AsyncSession, step_in: WorkflowStepCreate, template_id: int
 ) -> WorkflowStep:
     db_step = WorkflowStep(**step_in.model_dump(), template_id=template_id)
+    db.add(db_step)
+    await db.commit()
+    await db.refresh(db_step)
+
+    # Генерируем и сохраняем человеко-читаемый ID
+    db_step.reference_id = f"STEP-{db_step.id:06d}"
     db.add(db_step)
     await db.commit()
     await db.refresh(db_step)
     return db_step
 
 
-async def get_workflow_step(db: AsyncSession, step_id: uuid.UUID) -> Optional[WorkflowStep]:
-    result = await db.execute(
-        select(WorkflowStep).where(WorkflowStep.id == step_id)
-    )
-    return result.scalar_one_or_none()
+async def get_workflow_step(db: AsyncSession, step_id: int) -> Optional[WorkflowStep]:
+    return await db.get(WorkflowStep, step_id)
 
 
 async def get_workflow_steps_by_template(
-    db: AsyncSession, template_id: uuid.UUID, skip: int = 0, limit: int = 100
+    db: AsyncSession, template_id: int, skip: int = 0, limit: int = 100
 ) -> List[WorkflowStep]:
     result = await db.execute(
         select(WorkflowStep)
@@ -99,8 +102,6 @@ async def get_workflow_steps_by_template(
 async def create_workflow_instance(
     db: AsyncSession, instance_in: WorkflowInstanceCreate, created_by_id: uuid.UUID
 ) -> WorkflowInstance:
-    # При создании экземпляра, первый шаг должен быть установлен автоматически
-    # Предполагаем, что шаблон имеет хотя бы один шаг
     first_step_result = await db.execute(
         select(WorkflowStep)
         .where(WorkflowStep.template_id == instance_in.template_id)
@@ -121,20 +122,21 @@ async def create_workflow_instance(
     await db.commit()
     await db.refresh(db_instance)
 
-    # Добавление вложений, если они были указаны
+    # Генерируем и сохраняем человеко-читаемый ID
+    db_instance.reference_id = f"INST-{db_instance.id:06d}"
+    db.add(db_instance)
+    await db.commit()
+    await db.refresh(db_instance)
+    
     if instance_in.attachment_ids:
         for att_id in instance_in.attachment_ids:
-            # Нужно загрузить Attachment и обновить его instance_id
             att = await db.get(Attachment, att_id)
             if att:
                 att.instance_id = db_instance.id
                 db.add(att)
         await db.commit()
-        await db.refresh(db_instance) # Обновить, чтобы подтянуть вложения
+        await db.refresh(db_instance)
 
-    # Загружаем экземпляр еще раз, но уже со всеми жадно загруженными связями
-    # Это необходимо, чтобы Pydantic-схема WorkflowInstanceRead могла корректно сериализовать объект
-    # (поскольку она включает template, current_step, created_by, history, attachments)
     loaded_instance = await db.execute(
         select(WorkflowInstance)
         .options(
@@ -149,23 +151,16 @@ async def create_workflow_instance(
     return loaded_instance.scalar_one()
 
 
-async def get_workflow_instance(db: AsyncSession, instance_id: uuid.UUID) -> Optional[WorkflowInstance]:
-    print(f"DEBUG: get_workflow_instance called for instance_id: {instance_id}")
-    result = await db.execute(
-        select(WorkflowInstance)
-        .where(WorkflowInstance.id == instance_id)
-    )
-    db_instance = result.scalar_one_or_none()
-    print(f"DEBUG: get_workflow_instance result for {instance_id}: {db_instance}")
-    return db_instance
+async def get_workflow_instance(db: AsyncSession, instance_id: int) -> Optional[WorkflowInstance]:
+    return await db.get(WorkflowInstance, instance_id)
 
 
 # --- CRUD для WorkflowHistory ---
 async def create_workflow_history_entry(
     db: AsyncSession,
     history_in: WorkflowHistoryCreate,
-    instance_id: uuid.UUID,
-    step_id: uuid.UUID,
+    instance_id: int,
+    step_id: int,
     user_id: uuid.UUID,
 ) -> WorkflowHistory:
     db_history = WorkflowHistory(
@@ -181,7 +176,7 @@ async def create_workflow_history_entry(
 
 
 async def get_workflow_history_for_instance(
-    db: AsyncSession, instance_id: uuid.UUID, skip: int = 0, limit: int = 100
+    db: AsyncSession, instance_id: int, skip: int = 0, limit: int = 100
 ) -> List[WorkflowHistory]:
     result = await db.execute(
         select(WorkflowHistory)
@@ -199,7 +194,7 @@ async def create_attachment(
     attachment_in: AttachmentCreate,
     s3_path: str,
     uploaded_by_id: uuid.UUID,
-    instance_id: Optional[uuid.UUID] = None, # Может быть прикреплено позже
+    instance_id: Optional[int] = None,
 ) -> Attachment:
     db_attachment = Attachment(
         **attachment_in.model_dump(),
@@ -210,18 +205,21 @@ async def create_attachment(
     db.add(db_attachment)
     await db.commit()
     await db.refresh(db_attachment)
+    
+    # Генерируем и сохраняем человеко-читаемый ID
+    db_attachment.reference_id = f"ATT-{db_attachment.id:06d}"
+    db.add(db_attachment)
+    await db.commit()
+    await db.refresh(db_attachment)
     return db_attachment
 
 
-async def get_attachment(db: AsyncSession, attachment_id: uuid.UUID) -> Optional[Attachment]:
-    result = await db.execute(
-        select(Attachment).where(Attachment.id == attachment_id)
-    )
-    return result.scalar_one_or_none()
+async def get_attachment(db: AsyncSession, attachment_id: int) -> Optional[Attachment]:
+    return await db.get(Attachment, attachment_id)
 
 
 async def get_attachments_for_instance(
-    db: AsyncSession, instance_id: uuid.UUID, skip: int = 0, limit: int = 100
+    db: AsyncSession, instance_id: int, skip: int = 0, limit: int = 100
 ) -> List[Attachment]:
     result = await db.execute(
         select(Attachment)
@@ -233,7 +231,7 @@ async def get_attachments_for_instance(
     return result.scalars().all()
 
 
-async def delete_attachment(db: AsyncSession, attachment_id: uuid.UUID) -> bool:
+async def delete_attachment(db: AsyncSession, attachment_id: int) -> bool:
     result = await db.execute(
         delete(Attachment).where(Attachment.id == attachment_id)
     )
@@ -245,7 +243,7 @@ async def delete_attachment(db: AsyncSession, attachment_id: uuid.UUID) -> bool:
 async def advance_workflow_instance(
     db: AsyncSession,
     instance: WorkflowInstance,
-    user, # Assuming User model from app.models.user
+    user: User,
     action: str,
     comment: Optional[str] = None
 ) -> WorkflowInstance:
