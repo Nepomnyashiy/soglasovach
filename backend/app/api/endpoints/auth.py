@@ -64,10 +64,6 @@ async def get_current_user(
     Raises:
         HTTPException: Если токен недействителен или пользователь не найден.
     """
-    print(f"DEBUG: SECRET_KEY in get_current_user: {settings.SECRET_KEY}")
-    print(f"DEBUG: ALGORITHM in get_current_user: {settings.ALGORITHM}")
-    print(f"DEBUG: Token being decoded: {token}")
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не удалось проверить учетные данные",
@@ -79,8 +75,7 @@ async def get_current_user(
         if user_id is None:
             raise credentials_exception
         token_data = TokenData(user_id=user_id)
-    except JWTError as e:
-        print(f"DEBUG: JWTError: {e}")
+    except JWTError:
         raise credentials_exception
     user = await get_user(db, uuid.UUID(token_data.user_id))
     if user is None:
