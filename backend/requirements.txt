@@ -8,9 +8,13 @@ alembic
 passlib
 python-jose[cryptography]
 python-multipart
+minio
+
 
 ruff
 pytest
 pytest-asyncio
 httpx
 mypy
+types-passlib
+types-python-jose
