@@ -150,11 +150,14 @@ async def create_workflow_instance(
 
 
 async def get_workflow_instance(db: AsyncSession, instance_id: uuid.UUID) -> Optional[WorkflowInstance]:
+    print(f"DEBUG: get_workflow_instance called for instance_id: {instance_id}")
     result = await db.execute(
         select(WorkflowInstance)
         .where(WorkflowInstance.id == instance_id)
     )
-    return result.scalar_one_or_none()
+    db_instance = result.scalar_one_or_none()
+    print(f"DEBUG: get_workflow_instance result for {instance_id}: {db_instance}")
+    return db_instance
 
 
 # --- CRUD для WorkflowHistory ---
