@@ -261,10 +261,7 @@ async def approve_step(
     db: AsyncSession = Depends(get_async_session),
     current_user: UserRead = Depends(get_current_user),
 ):
-    """
-    Выполняет действие 'approve' (согласовать) на текущем шаге.
-    """
-    instance = await crud_workflow.get_workflow_instance(db, instance_id=instance_id)
+    instance = await db.get(WorkflowInstance, instance_id)
     if not instance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Экземпляр не найден.")
 
@@ -288,7 +285,7 @@ async def reject_step(
     """
     Выполняет действие 'reject' (отклонить) на текущем шаге.
     """
-    instance = await crud_workflow.get_workflow_instance(db, instance_id=instance_id)
+    instance = await db.get(WorkflowInstance, instance_id)
     if not instance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Экземпляр не найден.")
 
